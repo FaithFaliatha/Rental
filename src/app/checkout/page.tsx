@@ -1,32 +1,74 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Script from 'next/script';
+import { useSearchParams } from 'next/navigation';
 import { UploadCloud, ShieldCheck, CreditCard, Calendar, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
 import styles from './page.module.css';
+import { MOCK_CARS } from '@/lib/data';
+import Swal from 'sweetalert2';
 
-export default function CheckoutPage() {
+function CheckoutContent() {
+  const searchParams = useSearchParams();
+  const carIdParam = searchParams.get('carId');
+  const [car, setCar] = useState<any>(null);
+
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [ktpFileName, setKtpFileName] = useState("");
   const [selfieFileName, setSelfieFileName] = useState("");
+  
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [days, setDays] = useState(1);
+
+  useEffect(() => {
+    if (carIdParam) {
+      const foundCar = MOCK_CARS.find(c => c.id === parseInt(carIdParam));
+      if (foundCar) {
+        setCar(foundCar);
+      }
+    }
+  }, [carIdParam]);
+
+  useEffect(() => {
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setDays(diffDays > 0 ? diffDays : 1);
+    }
+  }, [startDate, endDate]);
+
+  const carPricePerDay = car ? car.price : 0;
+  const rentTotal = carPricePerDay * days;
+  const tax = rentTotal * 0.11;
+  const escrow = 100000; // Dana Titipan tetap
+  const grandTotal = rentTotal + tax + escrow;
 
   const handlePayment = async () => {
     try {
+      if (!car) {
+        throw new Error("Mobil tidak valid. Silakan kembali ke katalog.");
+      }
       if (!ktpFileName || !selfieFileName) {
         throw new Error("Mohon unggah dokumen KTP dan Selfie terlebih dahulu untuk verifikasi.");
+      }
+      if (!startDate || !endDate) {
+        throw new Error("Mohon pilih tanggal pengambilan dan pengembalian.");
       }
 
       setIsLoading(true);
       setErrorMessage("");
 
-      // Dummy payload for testing since we don't have authentications
+      // Dummy payload for testing
       const payload = {
         userId: "00000000-0000-0000-0000-000000000000",
-        carId: "00000000-0000-0000-0000-000000000000",
-        price: 6995000,
-        startDate: new Date().toISOString(),
-        endDate: new Date().toISOString(),
+        carId: car.id.toString(),
+        price: grandTotal,
+        startDate: new Date(startDate).toISOString(),
+        endDate: new Date(endDate).toISOString(),
         customerDetail: { name: "Test User", email: "test@example.com" }
       };
 
@@ -42,34 +84,53 @@ export default function CheckoutPage() {
         throw new Error(data.message || "Gagal mendapatkan token pembayaran");
       }
 
-      // Membuka popup Snap Midtrans menggunakan Token yang didapat dari Backend API
+      // Bypass Snap UI jika ini adalah token simulasi/mock
+      if (data.isMock) {
+        Swal.fire({
+          title: 'Simulasi Pembayaran Berhasil!',
+          text: 'Transaksi berhasil di-bypass karena kunci API Midtrans Anda belum aktif. (Mode Demo / Sandbox)',
+          icon: 'success',
+          confirmButtonColor: 'var(--primary)',
+          confirmButtonText: 'Tutup'
+        });
+        return;
+      }
+
       if (window.snap) {
         window.snap.pay(data.token, {
           onSuccess: function (result: any) {
-             alert("Pembayaran berhasil!");
-             console.log(result);
+             Swal.fire({ title: 'Berhasil!', text: 'Pembayaran berhasil dikonfirmasi.', icon: 'success', confirmButtonColor: 'var(--primary)' });
           },
           onPending: function (result: any) {
-             alert("Menunggu pembayaran...");
-             console.log(result);
+             Swal.fire({ title: 'Menunggu', text: 'Menunggu pembayaran diselesaikan...', icon: 'info', confirmButtonColor: 'var(--primary)' });
           },
           onError: function (result: any) {
-             alert("Pembayaran gagal!");
-             console.log(result);
+             Swal.fire({ title: 'Gagal', text: 'Pembayaran gagal diproses.', icon: 'error', confirmButtonColor: 'var(--primary)' });
           },
           onClose: function () {
-             alert("Anda menutup popup tanpa menyelesaikan pembayaran.");
+             Swal.fire({
+               title: 'Dibatalkan',
+               text: 'Anda menutup popup tanpa menyelesaikan pembayaran.',
+               icon: 'warning',
+               toast: true,
+               position: 'top-end',
+               showConfirmButton: false,
+               timer: 3000
+             });
           }
         });
       } else {
         throw new Error("Midtrans script failed to load");
       }
     } catch (error: any) {
-       console.error("Payment setup error:", error);
        setErrorMessage(error.message);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const formatIDR = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
   };
 
   return (
@@ -82,20 +143,20 @@ export default function CheckoutPage() {
       <div className={styles.checkoutContainer}>
         <div className={styles.checkoutWrapper}>
           
-          {/* Left Column: Forms */}
           <div className={styles.card}>
             <div>
               <h2 className={styles.sectionTitle}>Detail Penyewaan</h2>
               <p style={{ color: '#94a3b8', fontSize: '0.875rem' }}>Lengkapi data penyewaan dan unggah dokumen e-KYC.</p>
             </div>
 
-            {/* Dates */}
             <div className={styles.dateGroup}>
               <div className={styles.formGroup}>
                 <label>Tanggal Pengambilan <Calendar size={14} style={{display:'inline', marginLeft:4}} /></label>
                 <input 
                   type="date" 
                   className={styles.inputField} 
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
                   onClick={(e) => e.currentTarget.showPicker()}
                 />
               </div>
@@ -103,7 +164,9 @@ export default function CheckoutPage() {
                 <label>Tanggal Pengembalian <Calendar size={14} style={{display:'inline', marginLeft:4}} /></label>
                 <input 
                   type="date" 
-                  className={styles.inputField} 
+                  className={styles.inputField}
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)} 
                   onClick={(e) => e.currentTarget.showPicker()}
                 />
               </div>
@@ -121,7 +184,6 @@ export default function CheckoutPage() {
               <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: '1.5rem' }}>Dokumen KTP dan Selfie Anda akan diverifikasi secara manual oleh tim kami untuk keamanan transaksi.</p>
               
               <div className={styles.dateGroup}>
-                {/* KTP Upload */}
                 <label className={`${styles.uploadArea} ${ktpFileName ? styles.uploadedArea : ''}`}>
                   <input 
                     type="file" 
@@ -152,7 +214,6 @@ export default function CheckoutPage() {
                   )}
                 </label>
 
-                {/* Selfie Upload */}
                 <label className={`${styles.uploadArea} ${selfieFileName ? styles.uploadedArea : ''}`}>
                   <input 
                     type="file" 
@@ -186,39 +247,47 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Right Column: Order Summary */}
           <div className={styles.card} style={{ height: 'fit-content' }}>
             
-            <div className={styles.carPreview}>
-               <div className={styles.carMockImage}>🚙</div>
-               <div className={styles.carMockText}>Toyota Alphard Premium</div>
-            </div>
+            {car ? (
+              <div className={styles.carPreview} style={{ background: `url(${car.image}) center/cover`, minHeight: '150px', borderRadius: '1rem', position: 'relative', overflow: 'hidden' }}>
+                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }}></div>
+                 <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', zIndex: 1 }}>
+                   <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '1.2rem' }}>{car.name}</div>
+                   <div style={{ color: '#cbd5e1', fontSize: '0.875rem' }}>{car.category} • {formatIDR(car.price)}/hari</div>
+                 </div>
+              </div>
+            ) : (
+              <div className={styles.carPreview} style={{ padding: '2rem', textAlign: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: '1rem' }}>
+                 Mencari data mobil...
+              </div>
+            )}
 
-            <div>
+            <div style={{ marginTop: '1.5rem' }}>
               <h2 className={styles.sectionTitle}>Ringkasan Pembayaran</h2>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>Tarif Sewa (3 Hari)</span>
-                <span className={styles.summaryValue}>Rp 4.500.000</span>
+                <span className={styles.summaryLabel}>Tarif Sewa ({days} Hari)</span>
+                <span className={styles.summaryValue}>{formatIDR(rentTotal)}</span>
               </div>
               
               <div className={styles.summaryItem}>
                 <span className={styles.summaryLabel}>Pajak & Biaya Layanan (11%)</span>
-                <span className={styles.summaryValue}>Rp 495.000</span>
+                <span className={styles.summaryValue}>{formatIDR(tax)}</span>
               </div>
 
               <div className={styles.summaryItem} style={{ borderBottom: '1px dashed rgba(255,255,255,0.2)' }}>
                 <span className={styles.summaryLabel} style={{display:'flex', alignItems:'center', gap: '0.5rem', color: '#fbbf24'}}>
                   <AlertCircle size={16} /> Dana Titipan (Escrow)
                 </span>
-                <span className={styles.summaryValue}>Rp 2.000.000</span>
+                <span className={styles.summaryValue}>{formatIDR(escrow)}</span>
               </div>
 
               <div className={styles.summaryItem} style={{ marginTop: '1rem', borderBottom: 'none' }}>
                 <span className={styles.summaryLabel} style={{ color: '#fff' }}>Total Keseluruhan</span>
-                <span className={styles.totalValue}>Rp 6.995.000</span>
+                <span className={styles.totalValue}>{formatIDR(grandTotal)}</span>
               </div>
               <p style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '-0.5rem', fontStyle: 'italic' }}>
                 *Dana titipan akan dikembalikan sepenuhnya setelah mobil dikembalikan tanpa kerusakan.
@@ -226,7 +295,7 @@ export default function CheckoutPage() {
             </div>
 
             {errorMessage && (
-               <div style={{ color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.875rem' }}>
+               <div style={{ color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.875rem', margin: '1rem 0' }}>
                  {errorMessage}
                </div>
             )}
@@ -234,8 +303,8 @@ export default function CheckoutPage() {
             <button 
               className={styles.submitBtn} 
               onClick={handlePayment} 
-              disabled={isLoading}
-              style={{ opacity: isLoading ? 0.7 : 1 }}
+              disabled={isLoading || !car}
+              style={{ opacity: isLoading || !car ? 0.7 : 1, marginTop: '1.5rem' }}
             >
               {isLoading ? (
                 <><Loader2 size={20} className="animate-spin" style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'middle', animation: 'spin 1s linear infinite' }} /> Memproses...</>
@@ -253,5 +322,13 @@ export default function CheckoutPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading Checkout...</div>}>
+      <CheckoutContent />
+    </Suspense>
   );
 }

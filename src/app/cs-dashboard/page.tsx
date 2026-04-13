@@ -6,16 +6,23 @@ import { supabase } from '@/lib/supabase';
 import { 
   Car, Calendar, ShieldCheck, CheckCircle, 
   XCircle, Clock, AlertCircle, LayoutDashboard,
-  Users
+  Users, LogOut
 } from 'lucide-react';
 import styles from './dashboard.module.css';
+import Swal from 'sweetalert2';
 
 // --- MOCK DATA ---
 const MOCK_CARS_STOCK = [
   { id: 1, name: 'Toyota Avanza', type: 'MVP Keluarga', stock: 5, total: 5, status: 'Available', image: '🚗' },
+  { id: 2, name: 'Honda Brio', type: 'City Car', stock: 3, total: 3, status: 'Available', image: '🚗' },
+  { id: 3, name: 'Suzuki Ertiga', type: 'MVP Keluarga', stock: 2, total: 4, status: 'Available', image: '🚗' },
   { id: 4, name: 'Toyota Innova Zenix', type: 'Premium MVP', stock: 2, total: 3, status: 'Available', image: '🚙' },
+  { id: 5, name: 'Honda CR-V', type: 'Premium SUV', stock: 1, total: 2, status: 'Available', image: '🚙' },
+  { id: 6, name: 'Mitsubishi Pajero Sport', type: 'Premium SUV', stock: 3, total: 3, status: 'Available', image: '🚙' },
   { id: 7, name: 'Toyota Alphard', type: 'Luxury MVP', stock: 0, total: 2, status: 'Rented', image: '🚐' },
+  { id: 8, name: 'Lexus LM', type: 'Ultra Luxury MVP', stock: 1, total: 1, status: 'Available', image: '🚐' },
   { id: 9, name: 'Mercedes-Benz S-Class', type: 'Luxury Sedan', stock: 1, total: 1, status: 'Available', image: '🏎️' },
+  { id: 10, name: 'BMW 7 Series', type: 'Luxury Sedan', stock: 2, total: 2, status: 'Available', image: '🏎️' },
 ];
 
 const MOCK_SCHEDULES = [
@@ -44,12 +51,12 @@ export default function CSDashboard() {
       const localUser = localStorage.getItem('userLog')?.toLowerCase();
       
       let isCS = false;
-      if (localUser === 'faith@gmail.com') {
+      if (localUser === 'okta@gmail.com') {
         isCS = true;
       } else {
         // Fallback untuk mengecek Supabase jika login dari mekanisme lain
         const { data: { session } } = await supabase.auth.getSession();
-        if (session && session.user.email?.toLowerCase() === 'faith@gmail.com') {
+        if (session && session.user.email?.toLowerCase() === 'okta@gmail.com') {
           isCS = true;
         }
       }
@@ -78,6 +85,25 @@ export default function CSDashboard() {
     }));
   };
 
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: 'Konfirmasi Keluar',
+      text: 'Anda yakin ingin keluar dari sesi Customer Service?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Keluar!',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      localStorage.removeItem('userLog');
+      await supabase.auth.signOut();
+      window.location.href = '/login';
+    }
+  };
+
   if (isLoadingAuth) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#020617', color: '#fff' }}>
@@ -94,17 +120,39 @@ export default function CSDashboard() {
     { name: 'Verifikasi e-KYC', icon: <ShieldCheck size={18} /> }
   ];
 
-  const handleKycStatus = (id: string, newStatus: string) => {
-    setKycData(prev => prev.map(item => 
-      item.id === id ? { ...item, status: newStatus } : item
-    ));
-    alert(`Status Verifikasi ${id} berhasil diubah menjadi ${newStatus}.`);
+  const handleKycStatus = async (id: string, newStatus: string) => {
+    const result = await Swal.fire({
+      title: 'Verifikasi Dokumen',
+      text: `Apakah Anda yakin ingin mengubah status verifikasi ${id} menjadi ${newStatus}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: newStatus === 'Approved' ? '#10b981' : '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Ubah',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      setKycData(prev => prev.map(item => 
+        item.id === id ? { ...item, status: newStatus } : item
+      ));
+      
+      Swal.fire({
+        title: 'Berhasil!',
+        text: `Status Verifikasi ${id} berhasil diubah menjadi ${newStatus}.`,
+        icon: 'success',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+      });
+    }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Available': return <span className={`${styles.badge} ${styles.badgeAvailable}`}><CheckCircle size={14}/> Tersedia</span>;
-      case 'Rented': return <span className={`${styles.badge} ${styles.badgeRented}`}><Clock size={14}/> Disewa</span>;
+      case 'Rented': return <span className={`${styles.badge} ${styles.badgeRented}`}><XCircle size={14}/> Habis</span>;
       case 'Active': return <span className={`${styles.badge} ${styles.badgeActive}`}><Car size={14}/> Berjalan</span>;
       case 'Upcoming': return <span className={`${styles.badge} ${styles.badgePending}`}><Calendar size={14}/> Mendatang</span>;
       case 'Completed': return <span className={`${styles.badge} ${styles.badgeCompleted}`}><CheckCircle size={14}/> Selesai</span>;
@@ -118,12 +166,33 @@ export default function CSDashboard() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
+        <button className={styles.backBtn} onClick={handleLogout} style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)', backgroundColor: 'rgba(239, 68, 68, 0.05)' }}>
+          <LogOut size={16} /> Keluar (Logout)
+        </button>
         <h1 className={styles.title}>Customer Service Dashboard</h1>
         <p className={styles.subtitle}>Kelola inventaris kendaraan, jadwal penyewaan, dan verifikasi profil pengguna.</p>
       </div>
 
-      {/* Stats Overview */}
-      <div className={styles.statsGrid}>
+      <div className={styles.dashboardLayout}>
+        {/* Sidebar */}
+        <aside className={styles.sidebar}>
+          <div className={styles.sidebarNav}>
+            {tabs.map(tab => (
+              <button
+                key={tab.name}
+                className={`${styles.sidebarBtn} ${activeTab === tab.name ? styles.activeSidebarBtn : ''}`}
+                onClick={() => setActiveTab(tab.name)}
+              >
+                {tab.icon} {tab.name}
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className={styles.mainContent}>
+          {/* Stats Overview */}
+          <div className={styles.statsGrid}>
         <div className={styles.statCard}>
           <div className={`${styles.statIcon} ${styles.iconBlue}`}>
             <Car />
@@ -139,7 +208,7 @@ export default function CSDashboard() {
           </div>
           <div className={styles.statContent}>
             <h3>Penyewaan Berjalan</h3>
-            <p>4 Mobil</p>
+            <p>{carsData.reduce((acc, car) => acc + (car.total - car.stock), 0)} Mobil</p>
           </div>
         </div>
         <div className={styles.statCard}>
@@ -153,21 +222,8 @@ export default function CSDashboard() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className={styles.tabs}>
-        {tabs.map(tab => (
-          <button
-            key={tab.name}
-            className={`${styles.tabBtn} ${activeTab === tab.name ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab(tab.name)}
-          >
-            {tab.icon} {tab.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Main Content Area */}
-      <div className={styles.contentCard}>
+          {/* Main Content Area */}
+          <div className={styles.contentCard}>
         
         {/* VIEW: STOK MOBIL */}
         {activeTab === 'Stok Mobil' && (
@@ -308,6 +364,8 @@ export default function CSDashboard() {
           </div>
         )}
 
+          </div>
+        </main>
       </div>
     </div>
   );

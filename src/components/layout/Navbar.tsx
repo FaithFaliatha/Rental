@@ -2,15 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Car, LogOut, User } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import styles from './Navbar.module.css';
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
+
 
   useEffect(() => {
     const handleScroll = () => {
@@ -58,6 +60,9 @@ export default function Navbar() {
     await supabase.auth.signOut();
     window.location.href = '/';
   };
+  if (pathname && pathname.startsWith('/cs-dashboard')) {
+    return null;
+  }
 
   return (
     <header className={`${styles.navHeader} ${scrolled ? styles.scrolled : ''}`}>
@@ -78,6 +83,9 @@ export default function Navbar() {
         <div className={styles.authButtons}>
           {userName ? (
             <>
+              {userName?.toLowerCase() === 'okta' && (
+                <Link href="/cs-dashboard" className={styles.navLink} style={{ margin: '0 1rem', color: 'var(--primary)', fontWeight: 'bold' }}>Dashboard CS</Link>
+              )}
               <span style={{ color: 'var(--foreground)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <User size={18} color="var(--primary)" /> Halo, {userName}
               </span>

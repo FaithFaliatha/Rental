@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import Swal from 'sweetalert2';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { UserPlus, Loader2 } from 'lucide-react';
@@ -41,8 +42,9 @@ export default function RegisterPage() {
       };
       localStorage.setItem('mockUsers', JSON.stringify(existingUsers));
       
-      alert('Pendaftaran berhasil! Silakan masuk.');
-      router.push('/login');
+      Swal.fire({ title: 'Sukses!', text: 'Pendaftaran berhasil! Silakan masuk.', icon: 'success', confirmButtonColor: 'var(--primary)' }).then(() => {
+        router.push('/login');
+      });
       
     } catch (err: any) {
       console.error(err);

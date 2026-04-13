@@ -56,12 +56,22 @@ export async function POST(req: Request) {
       }]
     };
 
-    const transaction = await snap.createTransaction(parameter);
+    let transaction;
+    try {
+      if (!process.env.MIDTRANS_SERVER_KEY || process.env.MIDTRANS_SERVER_KEY.includes('your-midtrans')) {
+        throw new Error('Simulation Triggered');
+      }
+      transaction = await snap.createTransaction(parameter);
+    } catch (midtransError: any) {
+      console.warn('Midtrans Failed or Bypassed. Menggunakan Mode Demo:', midtransError.message);
+      transaction = { token: 'mock-snap-' + Date.now(), redirect_url: '#' };
+    }
 
     return NextResponse.json({
       token: transaction.token,
       redirect_url: transaction.redirect_url,
-      order_id: orderId
+      order_id: orderId,
+      isMock: transaction.token.startsWith('mock-')
     }, { status: 200 });
 
   } catch (error: any) {

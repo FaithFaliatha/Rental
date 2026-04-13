@@ -5,23 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Users, Settings, ChevronRight } from 'lucide-react';
 import styles from './page.module.css';
 
-const MOCK_CARS = [
-  // Umum
-  { id: 1, category: 'Umum', name: 'Toyota Avanza', type: 'MVP Keluarga', price: 450000, capacity: 7, transmission: 'Automatic', image: '🚗' },
-  { id: 2, category: 'Umum', name: 'Honda Brio', type: 'City Car', price: 350000, capacity: 5, transmission: 'Automatic', image: '🚙' },
-  { id: 3, category: 'Umum', name: 'Suzuki Ertiga', type: 'MVP Keluarga', price: 400000, capacity: 7, transmission: 'Manual', image: '🚘' },
-  
-  // Premium
-  { id: 4, category: 'Premium', name: 'Toyota Innova Zenix', type: 'Premium MVP', price: 850000, capacity: 7, transmission: 'Automatic', image: '🚙' },
-  { id: 5, category: 'Premium', name: 'Honda CR-V', type: 'Premium SUV', price: 900000, capacity: 5, transmission: 'Automatic', image: '🚘' },
-  { id: 6, category: 'Premium', name: 'Mitsubishi Pajero Sport', type: 'Premium SUV', price: 1000000, capacity: 7, transmission: 'Automatic', image: '🚙' },
-
-  // Exclusive
-  { id: 7, category: 'Exclusive', name: 'Toyota Alphard', type: 'Luxury MVP', price: 2500000, capacity: 7, transmission: 'Automatic', image: '🚐' },
-  { id: 8, category: 'Exclusive', name: 'Lexus LM', type: 'Ultra Luxury MVP', price: 4500000, capacity: 4, transmission: 'Automatic', image: '🚐' },
-  { id: 9, category: 'Exclusive', name: 'Mercedes-Benz S-Class', type: 'Luxury Sedan', price: 5000000, capacity: 4, transmission: 'Automatic', image: '🏎️' },
-  { id: 10, category: 'Exclusive', name: 'BMW 7 Series', type: 'Luxury Sedan', price: 4800000, capacity: 4, transmission: 'Automatic', image: '🏎️' },
-];
+import { MOCK_CARS } from '@/lib/data';
 
 export default function CatalogPage() {
   const router = useRouter();
@@ -63,7 +47,7 @@ export default function CatalogPage() {
         {filteredCars.map(car => (
           <div key={car.id} className={styles.card}>
             <div className={styles.imagePlaceholder}>
-              {car.image}
+              <img src={car.image} alt={car.name} className={styles.carImage} loading="lazy" />
               <span className={`${styles.badge} ${car.category === 'Exclusive' ? styles.exclusiveBadge : car.category === 'Premium' ? styles.premiumBadge : ''}`}>
                 {car.category}
               </span>

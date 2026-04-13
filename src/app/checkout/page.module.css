@@ -1,10 +1,10 @@
 .checkoutContainer {
-  min-height: 100vh;
+  min-height: calc(100vh - 80px); /* Account for navbar */
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: 4rem 2rem;
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+  align-items: flex-start;
+  padding: 6rem 2rem 4rem;
+  background-color: #020617; /* Match dashboard */
   color: #fff;
   font-family: inherit;
 }
@@ -18,13 +18,13 @@
 }
 
 .card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08); /* Match dashboard */
+  border-radius: 16px; /* Match dashboard */
   padding: 2.5rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -34,7 +34,7 @@
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+  background: linear-gradient(to right, #ffffff, #94a3b8); /* Match dashboard title */
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -64,8 +64,8 @@
 }
 
 .inputField:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(205, 164, 52, 0.2);
   background: rgba(0, 0, 0, 0.4);
 }
 
@@ -90,14 +90,14 @@
 }
 
 .uploadArea:hover {
-  border-color: #6366f1;
-  background: rgba(99, 102, 241, 0.05);
+  border-color: var(--primary);
+  background: rgba(205, 164, 52, 0.05);
 }
 
 .uploadIcon {
   width: 48px;
   height: 48px;
-  color: #818cf8;
+  color: var(--primary);
 }
 
 .uploadedArea {
@@ -154,12 +154,12 @@
 .totalValue {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #a78bfa;
+  color: var(--primary);
 }
 
 .submitBtn {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  color: white;
+  background: var(--primary);
+  color: #000;
   border: none;
   padding: 1.25rem;
   border-radius: 12px;
@@ -169,12 +169,13 @@
   transition: all 0.3s ease;
   width: 100%;
   margin-top: 1rem;
-  box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 10px 25px -5px rgba(205, 164, 52, 0.4);
 }
 
 .submitBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 15px 30px -5px rgba(99, 102, 241, 0.6);
+  box-shadow: 0 15px 30px -5px rgba(205, 164, 52, 0.6);
+  background: var(--primary-hover);
 }
 
 .submitBtn:active {

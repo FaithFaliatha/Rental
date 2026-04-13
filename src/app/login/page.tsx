@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import Swal from 'sweetalert2';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LogIn, Loader2 } from 'lucide-react';
@@ -37,14 +38,14 @@ export default function LoginPage() {
 
       // Mock Authentication 
       if (
-        (emailLower === 'faith@gmail.com' && formData.password === '654321') ||
-        (emailLower === 'okta@gmail.com' && formData.password === '654321') ||
+        (emailLower === 'faith@gmail.com' && formData.password === '321') ||
+        (emailLower === 'okta@gmail.com' && formData.password === '54321') ||
         isRegisteredUser
       ) {
         // Success Mock Logic
         localStorage.setItem('userLog', emailLower);
-        alert('Login berhasil! Selamat datang.');
-        if (emailLower === 'faith@gmail.com') {
+        Swal.fire({ title: 'Berhasil!', text: 'Login berhasil! Selamat datang.', icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
+        if (emailLower === 'okta@gmail.com') {
           window.location.href = '/cs-dashboard';
         } else {
           window.location.href = '/';

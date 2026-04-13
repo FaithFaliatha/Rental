@@ -6,44 +6,11 @@ import Image from 'next/image';
 import { Search, ShieldCheck, MapPin, Calendar, Clock, ArrowRight, Zap, CheckCircle } from 'lucide-react';
 import styles from './page.module.css';
 
-const MOCK_CARS = [
-  {
-    id: 1,
-    category: "Premium SUV",
-    name: "Lexus RX 300",
-    image: "https://images.unsplash.com/photo-1533473359331-01f4dfae2e7c?q=80&w=2070&auto=format&fit=crop",
-    price: "3.500.000",
-    seats: 5,
-    transmission: "Automatic"
-  },
-  {
-    id: 2,
-    category: "Luxury MPV",
-    name: "Toyota Alphard",
-    image: "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?q=80&w=2115&auto=format&fit=crop",
-    price: "4.500.000",
-    seats: 7,
-    transmission: "Automatic"
-  },
-  {
-    id: 3,
-    category: "Sport Sedan",
-    name: "Porsche Panamera",
-    image: "https://images.unsplash.com/photo-1503376760341-2e65d214a1a5?q=80&w=2070&auto=format&fit=crop",
-    price: "9.500.000",
-    seats: 4,
-    transmission: "PDK"
-  }
-];
+import { MOCK_CARS } from '@/lib/data';
 
 export default function Home() {
   React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const localUser = localStorage.getItem('userLog')?.toLowerCase();
-      if (localUser === 'faith@gmail.com') {
-        window.location.href = '/cs-dashboard';
-      }
-    }
+    // Redirect logic dipindah sepenuhnya ke /login agar CS bisa kembali melihat beranda.
   }, []);
 
   return (
@@ -110,10 +77,10 @@ export default function Home() {
         </div>
 
         <div className={styles.carGrid}>
-          {MOCK_CARS.map(car => (
+          {MOCK_CARS.slice(0, 3).map(car => (
             <div className={styles.carCard} key={car.id}>
               <div className={styles.carImageWrapper}>
-                <Image src={car.image} alt={car.name} fill={true} className={styles.carImage} />
+                <img src={car.image} alt={car.name} className={styles.carImage} loading="lazy" />
               </div>
               <div className={styles.carContent}>
                 <span className={styles.carCategory}>{car.category}</span>
@@ -122,16 +89,16 @@ export default function Home() {
                 <div className={styles.carFeatures}>
                   <span className={styles.featureItem}><Clock size={16} /> {car.transmission}</span>
                   <span className={styles.featureItem}>•</span>
-                  <span className={styles.featureItem}>{car.seats} Kursi</span>
+                  <span className={styles.featureItem}>{car.capacity} Kursi</span>
                 </div>
 
                 <div className={styles.carFooter}>
                   <div className={styles.carPrice}>
                     <span className={styles.priceLabel}>Mulai dari</span>
-                    <span className={styles.priceValue}>Rp {car.price}<span style={{fontSize:'0.9rem', color:'var(--foreground-muted)', fontWeight:'normal'}}>/hari</span></span>
+                    <span className={styles.priceValue}>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(car.price)}<span style={{fontSize:'0.9rem', color:'var(--foreground-muted)', fontWeight:'normal'}}>/hari</span></span>
                   </div>
                   
-                  <Link href="/checkout" className={styles.rentBtn}>
+                  <Link href={`/checkout?carId=${car.id}`} className={styles.rentBtn}>
                     Sewa <ArrowRight size={18} />
                   </Link>
                 </div>
