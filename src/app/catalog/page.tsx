@@ -5,22 +5,41 @@ import { useRouter } from 'next/navigation';
 import { Users, Settings, ChevronRight } from 'lucide-react';
 import styles from './page.module.css';
 
-import { MOCK_CARS } from '@/lib/data';
+import { supabase } from '@/lib/supabase';
 
 export default function CatalogPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('Semua');
   const categories = ['Semua', 'Umum', 'Premium', 'Exclusive'];
 
+  const [cars, setCars] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  React.useEffect(() => {
+    const fetchCars = async () => {
+      try {
+        const { data, error } = await supabase.from('cars').select('*');
+        if (data && !error) {
+          setCars(data);
+        }
+      } catch (err) {
+        console.error("Error fetching cars:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCars();
+  }, []);
+
   const filteredCars = activeTab === 'Semua' 
-    ? MOCK_CARS 
-    : MOCK_CARS.filter(c => c.category === activeTab);
+    ? cars 
+    : cars.filter(c => c.category === activeTab);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(price);
   };
 
-  const handleRentClick = (carId: number) => {
+  const handleRentClick = (carId: string) => {
     router.push(`/checkout?carId=${carId}`);
   };
 
@@ -44,10 +63,14 @@ export default function CatalogPage() {
       </div>
 
       <div className={styles.grid}>
-        {filteredCars.map(car => (
+        {isLoading ? (
+          <div style={{ textAlign: 'center', width: '100%', padding: '2rem 0' }}>Memuat katalog kendaraan...</div>
+        ) : filteredCars.length === 0 ? (
+          <div style={{ textAlign: 'center', width: '100%', padding: '2rem 0' }}>Kategori ini sedang kosong.</div>
+        ) : filteredCars.map(car => (
           <div key={car.id} className={styles.card}>
             <div className={styles.imagePlaceholder}>
-              <img src={car.image} alt={car.name} className={styles.carImage} loading="lazy" />
+              <img src={car.image_url} alt={car.name} className={styles.carImage} loading="lazy" />
               <span className={`${styles.badge} ${car.category === 'Exclusive' ? styles.exclusiveBadge : car.category === 'Premium' ? styles.premiumBadge : ''}`}>
                 {car.category}
               </span>

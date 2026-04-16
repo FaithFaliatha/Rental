@@ -1,9 +1,7 @@
 -- Skema Database SewaMobil (Supabase PostgreSQL)
-
--- Active: 1698765432100@@127.0.0.1@5432@postgres
+-- DIBUAT DARI AWAL (FRESH INSTALL)
 
 -- 1. Table: users
--- Extend auth.users from Supabase
 create table public.users (
   id uuid references auth.users(id) on delete cascade primary key,
   full_name text not null,
@@ -15,16 +13,16 @@ create table public.users (
 create table public.cars (
   id uuid default gen_random_uuid() primary key,
   name text not null,
-  brand text default 'Toyota', -- Simplified
+  brand text default 'Toyota',
   category text not null,
   type text not null,
   price numeric not null,
   capacity integer not null,
   transmission text not null,
-  image_url text, -- URL to Supabase storage or local route
+  image_url text,
   is_available boolean default true,
-  stock integer default 1,     -- Added to track vehicle stocks for dashboard
-  total_stock integer default 1, -- Added to track total vehicle counts
+  stock integer default 1,
+  total_stock integer default 1,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -32,8 +30,8 @@ create table public.cars (
 create table public.kyc_documents (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references public.users(id) on delete cascade not null,
-  id_card_url text not null, -- URL to KTP
-  selfie_url text not null,  -- URL to Wajah
+  id_card_url text not null, 
+  selfie_url text not null,  
   status text check (status in ('pending', 'approved', 'rejected')) default 'pending',
   rejection_reason text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
@@ -71,7 +69,7 @@ alter table public.kyc_documents enable row level security;
 alter table public.bookings enable row level security;
 alter table public.payments enable row level security;
 
--- Basic Policies (Examples)
+-- Basic Policies
 create policy "Public cars are viewable by everyone." on public.cars for select using (true);
 create policy "Users can view their own profile." on public.users for select using (auth.uid() = id);
 
@@ -86,3 +84,19 @@ $$ language 'plpgsql';
 
 create trigger update_kyc_modtime before update on kyc_documents for each row execute procedure update_updated_at_column();
 create trigger update_payment_modtime before update on payments for each row execute procedure update_updated_at_column();
+
+-- ==========================================
+-- ISI DATA MOCK KE TABEL CARS
+-- ==========================================
+INSERT INTO public.cars (id, category, name, type, price, capacity, transmission, image_url, stock, total_stock, brand)
+VALUES 
+  ('11111111-1111-1111-1111-111111111111', 'Umum', 'Toyota Avanza', 'MVP Keluarga', 450000, 7, 'Automatic', '/api/images?car=toyota_avanza', 5, 5, 'Toyota'),
+  ('22222222-2222-2222-2222-222222222222', 'Umum', 'Honda Brio', 'City Car', 350000, 5, 'Automatic', '/api/images?car=honda_brio', 3, 3, 'Honda'),
+  ('33333333-3333-3333-3333-333333333333', 'Umum', 'Suzuki Ertiga', 'MVP Keluarga', 400000, 7, 'Manual', '/api/images?car=suzuki_ertiga', 2, 4, 'Suzuki'),
+  ('44444444-4444-4444-4444-444444444444', 'Premium', 'Toyota Innova Zenix', 'Premium MVP', 850000, 7, 'Automatic', '/api/images?car=toyota_innova_zenix', 2, 3, 'Toyota'),
+  ('55555555-5555-5555-5555-555555555555', 'Premium', 'Honda CR-V', 'Premium SUV', 900000, 5, 'Automatic', '/api/images?car=honda_crv', 1, 2, 'Honda'),
+  ('66666666-6666-6666-6666-666666666666', 'Premium', 'Mitsubishi Pajero Sport', 'Premium SUV', 1000000, 7, 'Automatic', '/api/images?car=mitsubishi_pajero_sport', 3, 3, 'Mitsubishi'),
+  ('77777777-7777-7777-7777-777777777777', 'Exclusive', 'Toyota Alphard', 'Luxury MVP', 2500000, 7, 'Automatic', '/api/images?car=toyota_alphard', 0, 2, 'Toyota'),
+  ('88888888-8888-8888-8888-888888888888', 'Exclusive', 'Lexus LM', 'Ultra Luxury MVP', 4500000, 4, 'Automatic', '/api/images?car=lexus_lm', 1, 1, 'Lexus'),
+  ('99999999-9999-9999-9999-999999999999', 'Exclusive', 'Mercedes-Benz S-Class', 'Luxury Sedan', 5000000, 4, 'Automatic', '/api/images?car=mercedes_s_class', 1, 1, 'Mercedes'),
+  ('00000000-0000-0000-0000-000000000000', 'Exclusive', 'BMW 7 Series', 'Luxury Sedan', 4800000, 4, 'Automatic', '/api/images?car=bmw_7_series', 2, 2, 'BMW');

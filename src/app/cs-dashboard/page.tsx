@@ -11,19 +11,7 @@ import {
 import styles from './dashboard.module.css';
 import Swal from 'sweetalert2';
 
-// --- MOCK DATA ---
-const MOCK_CARS_STOCK = [
-  { id: 1, name: 'Toyota Avanza', type: 'MVP Keluarga', stock: 5, total: 5, status: 'Available', image: '🚗' },
-  { id: 2, name: 'Honda Brio', type: 'City Car', stock: 3, total: 3, status: 'Available', image: '🚗' },
-  { id: 3, name: 'Suzuki Ertiga', type: 'MVP Keluarga', stock: 2, total: 4, status: 'Available', image: '🚗' },
-  { id: 4, name: 'Toyota Innova Zenix', type: 'Premium MVP', stock: 2, total: 3, status: 'Available', image: '🚙' },
-  { id: 5, name: 'Honda CR-V', type: 'Premium SUV', stock: 1, total: 2, status: 'Available', image: '🚙' },
-  { id: 6, name: 'Mitsubishi Pajero Sport', type: 'Premium SUV', stock: 3, total: 3, status: 'Available', image: '🚙' },
-  { id: 7, name: 'Toyota Alphard', type: 'Luxury MVP', stock: 0, total: 2, status: 'Rented', image: '🚐' },
-  { id: 8, name: 'Lexus LM', type: 'Ultra Luxury MVP', stock: 1, total: 1, status: 'Available', image: '🚐' },
-  { id: 9, name: 'Mercedes-Benz S-Class', type: 'Luxury Sedan', stock: 1, total: 1, status: 'Available', image: '🏎️' },
-  { id: 10, name: 'BMW 7 Series', type: 'Luxury Sedan', stock: 2, total: 2, status: 'Available', image: '🏎️' },
-];
+// --- MOCK DATA FOR SCHEDULE & KYC (To be replaced later) ---
 
 const MOCK_SCHEDULES = [
   { id: 'BK-001', user: 'Budi Santoso', car: 'Toyota Avanza', startDate: '2026-04-06', endDate: '2026-04-09', status: 'Active' },
@@ -41,7 +29,7 @@ export default function CSDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('Stok Mobil');
   const [kycData, setKycData] = useState(INITIAL_KYC);
-  const [carsData, setCarsData] = useState(MOCK_CARS_STOCK);
+  const [carsData, setCarsData] = useState<any[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
@@ -71,18 +59,38 @@ export default function CSDashboard() {
     checkAuth();
   }, [router]);
 
-  const handleStockChange = (id: number, delta: number) => {
-    setCarsData(prev => prev.map(car => {
-      if (car.id === id) {
-        const newStock = Math.max(0, Math.min(car.total, car.stock + delta));
-        return {
-          ...car,
-          stock: newStock,
-          status: newStock === 0 ? 'Rented' : 'Available'
-        };
+  useEffect(() => {
+    if (isAuthorized) {
+      const fetchCars = async () => {
+        const { data } = await supabase.from('cars').select('*').order('created_at', { ascending: true });
+        if (data) {
+           setCarsData(data.map(car => ({
+             ...car,
+             status: car.stock > 0 ? 'Available' : 'Rented'
+           })));
+        }
+      };
+      fetchCars();
+    }
+  }, [isAuthorized]);
+
+  const handleStockChange = async (id: string, delta: number) => {
+    const car = carsData.find(c => c.id === id);
+    if (!car) return;
+
+    const newStock = Math.max(0, Math.min(car.total_stock || 1, car.stock + delta));
+    const newStatus = newStock === 0 ? 'Rented' : 'Available';
+
+    // Optimistic Update
+    setCarsData(prev => prev.map(c => {
+      if (c.id === id) {
+        return { ...c, stock: newStock, status: newStatus };
       }
-      return car;
+      return c;
     }));
+
+    // Update Supabase
+    await supabase.from('cars').update({ stock: newStock, is_available: newStock > 0 }).eq('id', id);
   };
 
   const handleLogout = async () => {
@@ -199,7 +207,7 @@ export default function CSDashboard() {
           </div>
           <div className={styles.statContent}>
             <h3>Total Kendaraan Aktif</h3>
-            <p>{carsData.reduce((acc, car) => acc + car.total, 0)} Unit</p>
+            <p>{carsData.reduce((acc, car) => acc + (car.total_stock || 1), 0)} Unit</p>
           </div>
         </div>
         <div className={styles.statCard}>
@@ -208,7 +216,7 @@ export default function CSDashboard() {
           </div>
           <div className={styles.statContent}>
             <h3>Penyewaan Berjalan</h3>
-            <p>{carsData.reduce((acc, car) => acc + (car.total - car.stock), 0)} Mobil</p>
+            <p>{carsData.reduce((acc, car) => acc + ((car.total_stock || 1) - car.stock), 0)} Mobil</p>
           </div>
         </div>
         <div className={styles.statCard}>
@@ -242,7 +250,7 @@ export default function CSDashboard() {
                   <tr key={car.id}>
                     <td>
                       <div className={styles.flexCenter}>
-                        <span className={styles.carImage}>{car.image}</span>
+                        <img src={car.image_url} alt={car.name} style={{ width: '40px', height: 'auto', borderRadius: '4px', marginRight: '8px' }} />
                         <span style={{ fontWeight: 500 }}>{car.name}</span>
                       </div>
                     </td>
@@ -255,11 +263,11 @@ export default function CSDashboard() {
                           disabled={car.stock <= 0}
                           style={{ padding: '0.2rem 0.6rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', color: '#fff', cursor: car.stock <= 0 ? 'not-allowed' : 'pointer' }}
                         >-</button>
-                        <strong>{car.stock}</strong> <span style={{ color: '#94a3b8' }}>/ {car.total}</span>
+                        <strong>{car.stock}</strong> <span style={{ color: '#94a3b8' }}>/ {car.total_stock || 1}</span>
                         <button 
                           onClick={() => handleStockChange(car.id, 1)}
-                          disabled={car.stock >= car.total}
-                          style={{ padding: '0.2rem 0.6rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', color: '#fff', cursor: car.stock >= car.total ? 'not-allowed' : 'pointer' }}
+                          disabled={car.stock >= (car.total_stock || 1)}
+                          style={{ padding: '0.2rem 0.6rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', color: '#fff', cursor: car.stock >= (car.total_stock || 1) ? 'not-allowed' : 'pointer' }}
                         >+</button>
                       </div>
                     </td>

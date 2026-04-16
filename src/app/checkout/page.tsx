@@ -5,7 +5,7 @@ import Script from 'next/script';
 import { useSearchParams } from 'next/navigation';
 import { UploadCloud, ShieldCheck, CreditCard, Calendar, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
 import styles from './page.module.css';
-import { MOCK_CARS } from '@/lib/data';
+import { supabase } from '@/lib/supabase';
 import Swal from 'sweetalert2';
 
 function CheckoutContent() {
@@ -23,12 +23,19 @@ function CheckoutContent() {
   const [days, setDays] = useState(1);
 
   useEffect(() => {
-    if (carIdParam) {
-      const foundCar = MOCK_CARS.find(c => c.id === parseInt(carIdParam));
-      if (foundCar) {
-        setCar(foundCar);
+    const fetchCar = async () => {
+      if (carIdParam) {
+        try {
+          const { data, error } = await supabase.from('cars').select('*').eq('id', carIdParam).single();
+          if (data && !error) {
+            setCar(data);
+          }
+        } catch (err) {
+          console.error("Error fetching car detail:", err);
+        }
       }
-    }
+    };
+    fetchCar();
   }, [carIdParam]);
 
   useEffect(() => {
@@ -250,7 +257,7 @@ function CheckoutContent() {
           <div className={styles.card} style={{ height: 'fit-content' }}>
             
             {car ? (
-              <div className={styles.carPreview} style={{ background: `url(${car.image}) center/cover`, minHeight: '150px', borderRadius: '1rem', position: 'relative', overflow: 'hidden' }}>
+              <div className={styles.carPreview} style={{ background: `url(${car.image_url}) center/cover`, minHeight: '150px', borderRadius: '1rem', position: 'relative', overflow: 'hidden' }}>
                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }}></div>
                  <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', zIndex: 1 }}>
                    <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '1.2rem' }}>{car.name}</div>

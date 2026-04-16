@@ -6,11 +6,27 @@ import Image from 'next/image';
 import { Search, ShieldCheck, MapPin, Calendar, Clock, ArrowRight, Zap, CheckCircle } from 'lucide-react';
 import styles from './page.module.css';
 
-import { MOCK_CARS } from '@/lib/data';
+import { supabase } from '@/lib/supabase';
 
 export default function Home() {
+  const [cars, setCars] = React.useState<any[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
   React.useEffect(() => {
-    // Redirect logic dipindah sepenuhnya ke /login agar CS bisa kembali melihat beranda.
+    const fetchCars = async () => {
+      try {
+        const { data, error } = await supabase.from('cars').select('*').limit(3);
+        if (data && !error) {
+          setCars(data);
+        }
+      } catch (err) {
+        console.error("Error fetching cars:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchCars();
   }, []);
 
   return (
@@ -77,10 +93,13 @@ export default function Home() {
         </div>
 
         <div className={styles.carGrid}>
-          {MOCK_CARS.slice(0, 3).map(car => (
-            <div className={styles.carCard} key={car.id}>
-              <div className={styles.carImageWrapper}>
-                <img src={car.image} alt={car.name} className={styles.carImage} loading="lazy" />
+          {isLoading ? (
+            <p style={{ textAlign: 'center', width: '100%' }}>Memuat data mobil...</p>
+          ) : cars.length > 0 ? (
+            cars.map(car => (
+              <div className={styles.carCard} key={car.id}>
+                <div className={styles.carImageWrapper}>
+                  <img src={car.image_url} alt={car.name} className={styles.carImage} loading="lazy" />
               </div>
               <div className={styles.carContent}>
                 <span className={styles.carCategory}>{car.category}</span>
@@ -104,7 +123,10 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          ))}
+          ))
+        ) : (
+          <p style={{ textAlign: 'center', width: '100%' }}>Tidak ada mobil tersedia.</p>
+        )}
         </div>
       </section>
 
